@@ -11,19 +11,25 @@ const RegionTourPage = () => {
 
 useEffect(() => {
   async function fetchTours() {
+    if (!region) {
+      console.error("❌ Region is undefined");
+      return;
+    }
+
     const url = `${BASE_URL}/tours/region/${region}`;
-    console.log("➡️ about to fetch URL:", url);
 
     try {
-      const res = await axios.get(url);
-      setTours(res.data.data);
+      const res = await fetch(url);
+      const data = await res.json();
+      setTours(data.data);
     } catch (err) {
-      console.error("Fetch failed:", err);
-      setError(true);
+      console.error("Failed to fetch tours:", err);
     }
   }
+
   fetchTours();
 }, [region]);
+
 
 
   if (error) return (
