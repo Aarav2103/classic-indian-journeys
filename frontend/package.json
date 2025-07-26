@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "serve": "react-scripts start",
+      "build": "react-scripts build",
     "tailwind": "tailwindcss",
     "start": "node server.js"
   },
