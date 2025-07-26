@@ -1,6 +1,7 @@
 import { useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import { BASE_URL } from "../utils/config";
 import TourCard from '../Shared/TourCard';
 
 const RegionTourPage = () => {
@@ -10,7 +11,7 @@ const RegionTourPage = () => {
 
 useEffect(() => {
   async function fetchTours() {
-    const url = `http://localhost:8000/api/v1/tours/region/${region}`;
+    const url = `${BASE_URL}/tours/region/${region}`;
     console.log("➡️ about to fetch URL:", url);
 
     try {
