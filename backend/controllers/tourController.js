@@ -1,6 +1,6 @@
 import Tour from "../models/Tour.js";
 
-// create new tour
+// Create new tour
 export const createTour = async (req, res) => {
   try {
     const newTour = new Tour(req.body);
@@ -11,12 +11,12 @@ export const createTour = async (req, res) => {
       data: savedTour,
     });
   } catch (err) {
-    console.error(err);
+    console.error("Create Tour Error:", err);
     res.status(500).json({ success: false, message: "Failed to create tour" });
   }
 };
 
-// update tour
+// Update tour
 export const updateTour = async (req, res) => {
   const id = req.params.id;
   try {
@@ -31,12 +31,12 @@ export const updateTour = async (req, res) => {
       data: updatedTour,
     });
   } catch (err) {
-    console.error(err);
+    console.error("Update Tour Error:", err);
     res.status(500).json({ success: false, message: "Failed to update tour" });
   }
 };
 
-// delete tour
+// Delete tour
 export const deleteTour = async (req, res) => {
   const id = req.params.id;
   try {
@@ -46,12 +46,12 @@ export const deleteTour = async (req, res) => {
       message: "Tour deleted successfully",
     });
   } catch (err) {
-    console.error(err);
+    console.error("Delete Tour Error:", err);
     res.status(500).json({ success: false, message: "Failed to delete tour" });
   }
 };
 
-// get single tour
+// Get single tour
 export const getSingleTour = async (req, res) => {
   const id = req.params.id;
   try {
@@ -68,12 +68,12 @@ export const getSingleTour = async (req, res) => {
       data: tour,
     });
   } catch (err) {
-    console.error(err);
+    console.error("Get Single Tour Error:", err);
     res.status(500).json({ success: false, message: "Failed to get the tour" });
   }
 };
 
-// get all tours
+// Get all tours
 export const getAllTour = async (req, res) => {
   try {
     const tours = await Tour.find();
@@ -84,34 +84,39 @@ export const getAllTour = async (req, res) => {
       data: tours,
     });
   } catch (err) {
-    console.error(err);
+    console.error("Get All Tours Error:", err);
     res.status(500).json({ success: false, message: "Failed to get tours" });
   }
 };
 
-// get featured tours
+// Get featured tours
 export const getFeaturedTour = async (req, res) => {
   try {
     const tours = await Tour.find({ featured: true });
     res.status(200).json({
       success: true,
-      message: "Tours retrieved successfully",
+      message: "Featured tours retrieved successfully",
       data: tours,
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: "Failed to get tours" });
+    console.error("Get Featured Tours Error:", err);
+    res.status(500).json({ success: false, message: "Failed to get featured tours" });
   }
 };
 
-// get tours by region
-// controllers/tourController.js
-// controllers/tourController.js
+// Get tours by region
 export const getToursByRegion = async (req, res) => {
   try {
-    const slug = req.params.region;              // e.g. "central-india"
-    const regex = new RegExp(`^${slug}$`, "i");  // exact, case-insensitive match
+    const slug = req.params.region;
 
+    if (!slug || slug === 'undefined') {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or missing region parameter",
+      });
+    }
+
+    const regex = new RegExp(`^${slug}$`, "i"); // case-insensitive match
     const tours = await Tour.find({ region: regex });
 
     if (!tours.length) {
@@ -137,11 +142,7 @@ export const getToursByRegion = async (req, res) => {
   }
 };
 
-
-
-   
-
-// ✅ get total tour count
+// Get total tour count
 export const getTourCount = async (req, res) => {
   try {
     const count = await Tour.estimatedDocumentCount();
