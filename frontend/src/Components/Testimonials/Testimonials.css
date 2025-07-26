@@ -1,0 +1,32 @@
+.testimonials {
+    background-color: #fffaf2;
+    border: 2px solid #d7b56d;
+    border-radius: 16px;
+    box-shadow: 0 6px 18px rgba(180, 140, 90, 0.25);
+    font-family: 'Libre Baskerville', serif;
+    color: #3e2d19;
+    min-height: 280px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.testimonials:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 30px rgba(180, 140, 90, 0.35);
+}
+
+.testimonials p {
+    font-size: 1.05rem;
+    line-height: 1.7;
+}
+
+.testimonials h6 {
+    font-family: 'Cinzel', serif;
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: #2d1e10;
+}
+
+.testimonials img {
+    border: 2px solid #d4af37;
+    object-fit: cover;
+}

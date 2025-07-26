@@ -1,0 +1,38 @@
+.royal-carousel {
+    padding: 2rem 1rem;
+}
+
+.royal-carousel-card {
+    padding: 0 0.5rem;
+}
+
+.carousel-image-wrapper {
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px;
+    border: 2px solid #c5a46d;
+    box-shadow: 0 8px 24px rgba(197, 164, 109, 0.3);
+}
+
+.royal-carousel-img {
+    width: 100%;
+    height: 300px;
+    object-fit: cover;
+    border-radius: 12px;
+}
+
+.carousel-caption-overlay {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    padding: 0.8rem 1rem;
+    background: rgba(30, 20, 10, 0.6);
+    font-family: "Cinzel", serif;
+    color: #e3c275;
+    font-size: 1.1rem;
+    text-align: center;
+    text-shadow: 0 0 4px rgba(0, 0, 0, 0.6);
+    letter-spacing: 0.5px;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+}

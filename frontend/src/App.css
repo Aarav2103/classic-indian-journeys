@@ -1,0 +1,228 @@
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&display=swap");
+
+:root {
+  --primary-color: #ff7e01;
+  --secondary-color: #faa935;
+  --heading-color: #2d1e10;
+  --text-color: #6c4f3d;
+  --font-name: "Montserrat", sans-serif;
+  --subtitle-font-name: "Island Moments", cursive;
+  --cinzel-font: "Cinzel", serif;
+  --playfair-font: "Playfair Display", serif;
+  --gold: #d4af37;
+}
+
+/* GLOBAL BASE */
+body {
+  font-family: var(--playfair-font);
+  background-color: #fffdf7;
+  color: var(--heading-color);
+  scroll-behavior: smooth;
+  letter-spacing: 0;
+  font-size: 1rem;
+}
+
+/* HEADINGS */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--cinzel-font);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--heading-color);
+}
+
+/* LOGO-TYPE HEADINGS */
+.signature-heading {
+  font-family: var(--playfair-font) !important;
+  font-size: 2.5rem !important;
+  font-weight: 700 !important;
+  color: #2d2014 !important;
+  text-align: center !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  margin-bottom: 1rem;
+}
+
+.royal-heading,
+.section-heading {
+  font-family: var(--playfair-font) !important;
+  font-size: 2.6rem !important;
+  font-weight: 700 !important;
+  color: #3b2b17 !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  text-align: center;
+}
+
+/* NAVIGATION LINKS */
+.nav-link {
+  font-family: var(--playfair-font);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--heading-color);
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.nav-link:hover {
+  color: var(--gold);
+}
+
+/* ACTIVE NAVLINK */
+.active-nav {
+  border-bottom: 2px solid var(--gold);
+  color: var(--text-color);
+}
+
+/* BUTTONS */
+.button-gold {
+  background-color: var(--gold);
+  color: white;
+  font-family: var(--playfair-font);
+  font-weight: 600;
+  padding: 0.5rem 1.2rem;
+  border-radius: 9999px;
+  transition: transform 0.2s ease, background-color 0.3s;
+}
+
+.button-gold:hover {
+  background-color: #b89930;
+  transform: scale(1.04);
+}
+
+/* FORM INPUTS */
+input,
+textarea,
+select {
+  font-family: var(--playfair-font);
+  font-size: 1rem;
+  color: var(--heading-color);
+}
+
+input::placeholder {
+  color: #b18c54;
+}
+
+/* SEARCH BAR FIXES */
+.search-bar input {
+  background-color: transparent;
+  border: none;
+  outline: none;
+}
+
+/* MISC */
+hr {
+  border: none;
+  border-top: 2px dashed var(--gold);
+  width: 80%;
+  margin: 3rem auto;
+}
+
+.scroll-cue {
+  font-family: var(--playfair-font);
+  color: var(--text-color);
+  font-size: 1rem;
+  animation: bounce 2s infinite;
+  margin-top: 2rem;
+}
+
+/* BOUNCE SCROLL ANIMATION */
+@keyframes bounce {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(8px);
+  }
+}
+
+/* Add this in your global CSS (e.g., App.css or index.css) */
+/* Elegant Gold Scroll Progress Bar */
+
+#scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 4px;
+  width: 0;
+  background-color: #341902;
+  /* ✅ exact rich brown */
+  border-radius: 0 4px 4px 0;
+  z-index: 9999;
+  box-shadow: none;
+  /* ✅ removes glowing overlay */
+  transition: width 0.2s ease-out;
+  pointer-events: none;
+}
+
+#scroll-progress::before {
+  content: "";
+  position: absolute;
+  width: 100vw;
+  height: 4px;
+  background: #d4c2ac;
+  /* soft antique beige */
+  opacity: 0.2;
+  z-index: -1;
+}
+
+a {
+  color: #3b2b17;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+a:hover {
+  color: #D4A741;
+}
+
+/* Optional extra glow on hover */
+.group:hover .dropdown-glow {
+  box-shadow: 0 0 15px rgba(212, 167, 65, 0.4);
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: #fff8e7;
+  min-width: 180px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  padding: 0.5rem 0;
+  z-index: 1000;
+  transition: all 0.3s ease;
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+}
+
+.dropdown:hover .dropdown-content,
+.dropdown:focus-within .dropdown-content {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.dropdown-content a {
+  color: #4b3a1f;
+  padding: 12px 20px;
+  display: block;
+  text-decoration: none;
+  font-family: 'Cinzel', serif;
+  font-size: 0.95rem;
+}
+
+.dropdown-content a:hover {
+  background-color: #fdf2d2;
+  color: #b88a00;
+}
