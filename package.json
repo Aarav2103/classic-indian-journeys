@@ -1,0 +1,14 @@
+{
+  "name": "classic-indian-journeys",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Classic Indian Journeys: MERN tours & travel monorepo",
+  "author": "Aarav",
+  "license": "ISC",
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix backend\" \"npm run serve --prefix frontend\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}
