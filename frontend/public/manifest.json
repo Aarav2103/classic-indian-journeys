@@ -1,0 +1,15 @@
+{
+  "short_name": "Classic Indian Journeys",
+  "name": "Classic Indian Journeys, Heritage Indian Travel",
+  "icons": [
+    {
+      "src": "logo-final.png",
+      "sizes": "any",
+      "type": "image/png"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#D4A741",
+  "background_color": "#FDF2D2"
+}
