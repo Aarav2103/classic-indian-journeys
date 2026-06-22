@@ -1,0 +1,32 @@
+name: Eval (AI quality)
+
+# Hits the live LLM (Gemini) + MongoDB Atlas, so it does NOT run on every PR.
+# Trigger manually from the Actions tab, or enable the weekly schedule below
+# once the GEMINI_API_KEY and MONGO_URI secrets are set.
+on:
+  workflow_dispatch:
+  # schedule:
+  #   - cron: "0 6 * * 1" # Mondays 06:00 UTC
+
+jobs:
+  eval:
+    name: AI eval harness
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20.11.1"
+          cache: "npm"
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Run evals
+        working-directory: backend
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+        run: npm run eval
