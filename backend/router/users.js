@@ -6,6 +6,7 @@ import {
   getAllUsers,
   getUserById,
   updateUser,
+  updateUserPassword,
   updateUserRole,
   deleteUser,
 } from "../controllers/userController.js";
@@ -14,6 +15,7 @@ import verifyToken, {
   verifyOwnerOrAdmin,
 } from "../utils/verifyToken.js";
 import { validateObjectId } from "../utils/validateObjectId.js";
+import { publicWriteLimiter } from "../utils/rateLimiters.js";
 
 const userRoute = express.Router();
 
@@ -31,6 +33,12 @@ const updateUserSchema = z.object({
   photo: z.string().max(2000).optional(),
 });
 
+const updatePasswordSchema = z.object({
+  // Required when changing your own password; ignored for admin resets.
+  currentPassword: z.string().min(1).max(200).optional(),
+  newPassword: z.string().min(6).max(200),
+});
+
 // Admin
 userRoute.post("/", verifyToken, verifyAdmin, validateBody(createUserSchema), createUser);
 userRoute.get("/", verifyToken, verifyAdmin, getAllUsers);
@@ -39,6 +47,7 @@ userRoute.patch("/:id/role", verifyToken, verifyAdmin, validateObjectId("id"), u
 // Owner or admin
 userRoute.get("/:id", verifyToken, verifyOwnerOrAdmin, validateObjectId("id"), getUserById);
 userRoute.put("/:id", verifyToken, verifyOwnerOrAdmin, validateObjectId("id"), validateBody(updateUserSchema), updateUser);
+userRoute.put("/:id/password", publicWriteLimiter, verifyToken, verifyOwnerOrAdmin, validateObjectId("id"), validateBody(updatePasswordSchema), updateUserPassword);
 userRoute.delete("/:id", verifyToken, verifyOwnerOrAdmin, validateObjectId("id"), deleteUser);
 
 export default userRoute;

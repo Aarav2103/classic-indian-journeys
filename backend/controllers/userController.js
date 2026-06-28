@@ -110,6 +110,34 @@ export const updateUser = async (req, res) => {
   }
 };
 
+// Change a user's password (owner or admin). The owner must prove the current
+// password; an admin may set a new one directly, the recovery path for
+// forgotten passwords, since there is no email-based reset at this scope.
+export const updateUserPassword = async (req, res) => {
+  const userId = req.params.id;
+  const { currentPassword, newPassword } = req.body;
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    if (req.user._id.toString() === userId) {
+      const ok = await bcrypt.compare(currentPassword || "", user.password);
+      if (!ok) {
+        return res
+          .status(403)
+          .json({ success: false, message: "Current password is incorrect" });
+      }
+    }
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+    res.status(200).json({ success: true, message: "Password updated" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Failed to update password" });
+  }
+};
+
 // Change a user's role (admin only). Admins cannot demote themselves, so a
 // project never ends up with zero admins by accident.
 export const updateUserRole = async (req, res) => {
@@ -169,6 +197,7 @@ export default {
   getAllUsers,
   getUserById,
   updateUser,
+  updateUserPassword,
   updateUserRole,
   deleteUser,
 };

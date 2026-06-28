@@ -72,11 +72,17 @@
   --space-16: 64px;
   --space-24: 96px;
   --space-32: 128px;
+
+  /* Keep UA form-control rendering (caret, autofill, scrollbars) on the
+     light palette even when the OS/browser prefers dark. */
+  color-scheme: light;
 }
 
 /* THEME: Night in India
    Deep navy/midnight at dusk with the same antique-gold accent */
 :root.theme-night {
+  color-scheme: dark;
+
   --brand-espresso-rgb:   242 231 207;
   --brand-ink-rgb:        228 215 182;
   --brand-muted-rgb:      169 155 124;
@@ -328,6 +334,9 @@ body { transition: background-color 350ms ease, color 350ms ease; }
     background-color: var(--brand-white);
     border: 1px solid var(--brand-line);
     color: var(--brand-ink);
+    /* explicit, UA dark-mode heuristics can otherwise paint an invisible
+       caret on the light field; gold reads on both themes' field colors */
+    caret-color: var(--brand-gold-dark);
     padding: 0.75rem 1rem;
     border-radius: var(--radius-md);
     font-family: var(--font-body);

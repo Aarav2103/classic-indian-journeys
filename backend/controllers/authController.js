@@ -11,14 +11,11 @@ export const registerUser = async (req, res) => {
   const { username, email, password, photo } = req.body;
 
   try {
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: 'Email already exists' });
-    }
-
-    const existingUsername = await User.findOne({ username });
-    if (existingUsername) {
-      return res.status(400).json({ message: 'Username already exists' });
+    // Generic conflict, don't reveal which of the two fields is taken
+    // (keeps register consistent with the enumeration-hardened login).
+    const existing = await User.findOne({ $or: [{ email }, { username }] });
+    if (existing) {
+      return res.status(409).json({ message: 'Email or username already in use' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);

@@ -1,5 +1,6 @@
 import React, { useContext, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { AuthContext } from "../context/AuthContext";
 import { BASE_URL, API_TIMEOUT } from "../utils/config";
 import Button from "../ui/Button";
@@ -8,9 +9,16 @@ import Alert from "../ui/Alert";
 import SafeImage from "../ui/SafeImage";
 import Eyebrow from "../ui/Eyebrow";
 
-// Heritage doorway, Jaipur, see CREDITS.md
-const SIDE_IMAGE =
-  "https://images.unsplash.com/photo-1599661046827-9dafb7e63a1f?w=1200&q=85";
+// Served from our own bundle so the panel never falls back to a placeholder
+// when a CDN is slow or blocked.
+const SIDE_IMAGE = "/images/destinations/jaipur-palace.jpg";
+
+const reveal = {
+  initial: { opacity: 0, height: 0 },
+  animate: { opacity: 1, height: "auto" },
+  exit: { opacity: 0, height: 0 },
+  transition: { duration: 0.25, ease: "easeOut" },
+};
 
 const Login = () => {
   const [credentials, setCredentials] = useState({ email: "", password: "" });
@@ -29,7 +37,6 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setStatus(null);
     setSubmitting(true);
     dispatch({ type: "LOGIN_START" });
     try {
@@ -64,7 +71,7 @@ const Login = () => {
           <div className="hidden md:block relative">
             <SafeImage
               src={SIDE_IMAGE}
-              alt="Heritage doorway, Jaipur"
+              alt="City Palace, Jaipur"
               className="absolute inset-0 w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-brand-espresso/70 to-transparent" />
@@ -118,11 +125,18 @@ const Login = () => {
                 </div>
               </div>
 
-              {status && (
-                <Alert tone={status.type === "success" ? "success" : "error"} onClose={() => setStatus(null)}>
-                  {status.msg}
-                </Alert>
-              )}
+              <AnimatePresence>
+                {status && (
+                  <motion.div {...reveal} className="overflow-hidden">
+                    <Alert
+                      tone={status.type === "success" ? "success" : "error"}
+                      onClose={() => setStatus(null)}
+                    >
+                      {status.msg}
+                    </Alert>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               <Button type="submit" variant="primary" size="lg" className="w-full" disabled={submitting}>
                 {submitting ? "Signing in..." : "Sign in"}

@@ -1,13 +1,121 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import api from "../../api/client";
+import { Input } from "../../ui/Input";
+import Button from "../../ui/Button";
+import Alert from "../../ui/Alert";
+
+const ChangePasswordModal = ({ userId, onClose }) => {
+  const [form, setForm] = useState({ current: "", next: "", confirm: "" });
+  const [status, setStatus] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  const onChange = (e) =>
+    setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
+
+  useEffect(() => {
+    const onKey = (e) => e.key === "Escape" && onClose();
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (form.next.length < 6) {
+      setStatus({ type: "error", msg: "New password must be at least 6 characters." });
+      return;
+    }
+    if (form.next !== form.confirm) {
+      setStatus({ type: "error", msg: "New passwords do not match." });
+      return;
+    }
+    setSaving(true);
+    setStatus(null);
+    try {
+      await api.put(`/users/${userId}/password`, {
+        currentPassword: form.current,
+        newPassword: form.next,
+      });
+      setStatus({ type: "success", msg: "Password updated." });
+      setTimeout(onClose, 1000);
+    } catch (err) {
+      setStatus({
+        type: "error",
+        msg: err?.response?.data?.message || "Failed to update password.",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[80] flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Change password"
+    >
+      <div className="absolute inset-0 bg-brand-espresso/40" onClick={onClose} />
+      <form
+        onSubmit={submit}
+        className="relative w-full max-w-sm rounded-lg bg-brand-white border border-brand-line shadow-card p-6 space-y-4"
+      >
+        <h2 className="font-heading text-lg text-brand-espresso">Change password</h2>
+        <Input
+          label="Current password"
+          name="current"
+          type="password"
+          autoComplete="current-password"
+          value={form.current}
+          onChange={onChange}
+          required
+        />
+        <Input
+          label="New password"
+          name="next"
+          type="password"
+          autoComplete="new-password"
+          value={form.next}
+          onChange={onChange}
+          required
+        />
+        <Input
+          label="Confirm new password"
+          name="confirm"
+          type="password"
+          autoComplete="new-password"
+          value={form.confirm}
+          onChange={onChange}
+          required
+        />
+        {status && (
+          <Alert
+            tone={status.type === "success" ? "success" : "error"}
+            onClose={() => setStatus(null)}
+          >
+            {status.msg}
+          </Alert>
+        )}
+        <div className="flex justify-end gap-2 pt-1">
+          <Button type="button" variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={saving}>
+            {saving ? "Saving..." : "Save"}
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+};
 
 /**
  * Single account control for the header, an avatar button that opens a
- * dropdown (name/email, Admin dashboard if admin, Logout). Replaces the
- * cluttered greeting + Admin pill + Logout pill row.
+ * dropdown (name/email, Admin dashboard if admin, Change password, Logout).
  */
 const AccountMenu = ({ user, onLogout }) => {
   const [open, setOpen] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
   const ref = useRef(null);
 
   const name = user.username.charAt(0).toUpperCase() + user.username.slice(1);
@@ -72,6 +180,18 @@ const AccountMenu = ({ user, onLogout }) => {
             role="menuitem"
             onClick={() => {
               setOpen(false);
+              setChangingPassword(true);
+            }}
+            className="w-full text-left flex items-center gap-2.5 px-4 py-2.5 text-sm text-brand-ink hover:bg-brand-cream transition-colors"
+          >
+            <i className="ri-lock-2-line text-base" /> Change password
+          </button>
+
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
               onLogout();
             }}
             className="w-full text-left flex items-center gap-2.5 px-4 py-2.5 text-sm text-brand-ink hover:bg-brand-cream transition-colors"
@@ -79,6 +199,13 @@ const AccountMenu = ({ user, onLogout }) => {
             <i className="ri-logout-box-r-line text-base" /> Logout
           </button>
         </div>
+      )}
+
+      {changingPassword && (
+        <ChangePasswordModal
+          userId={user.id || user._id}
+          onClose={() => setChangingPassword(false)}
+        />
       )}
     </div>
   );

@@ -1,5 +1,6 @@
 import React, { useContext, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { AuthContext } from "../context/AuthContext";
 import { BASE_URL, API_TIMEOUT } from "../utils/config";
 import Button from "../ui/Button";
@@ -8,9 +9,16 @@ import Alert from "../ui/Alert";
 import SafeImage from "../ui/SafeImage";
 import Eyebrow from "../ui/Eyebrow";
 
-// Kerala backwaters, see CREDITS.md
-const SIDE_IMAGE =
-  "https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?w=1200&q=85";
+// Served from our own bundle so the panel never falls back to a placeholder
+// when a CDN is slow or blocked.
+const SIDE_IMAGE = "/images/destinations/kerala-backwaters.jpg";
+
+const reveal = {
+  initial: { opacity: 0, height: 0 },
+  animate: { opacity: 1, height: "auto" },
+  exit: { opacity: 0, height: 0 },
+  transition: { duration: 0.25, ease: "easeOut" },
+};
 
 const Register = () => {
   const [credentials, setCredentials] = useState({ username: "", email: "", password: "" });
@@ -31,7 +39,6 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setStatus(null);
     if (!emailValid) {
       setStatus({ type: "error", msg: "Please enter a valid email address." });
       return;
@@ -133,11 +140,18 @@ const Register = () => {
                 </div>
               </div>
 
-              {status && (
-                <Alert tone={status.type === "success" ? "success" : "error"} onClose={() => setStatus(null)}>
-                  {status.msg}
-                </Alert>
-              )}
+              <AnimatePresence>
+                {status && (
+                  <motion.div {...reveal} className="overflow-hidden">
+                    <Alert
+                      tone={status.type === "success" ? "success" : "error"}
+                      onClose={() => setStatus(null)}
+                    >
+                      {status.msg}
+                    </Alert>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               <Button type="submit" variant="primary" size="lg" className="w-full" disabled={submitting}>
                 {submitting ? "Creating..." : "Create account"}

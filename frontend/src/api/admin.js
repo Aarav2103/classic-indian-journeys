@@ -26,6 +26,8 @@ export const deleteEnquiry = (id) => api.delete(`/contact/${id}`);
 export const fetchUsers = () => api.get("/users").then(asArray);
 export const setUserRole = (id, role) =>
   api.patch(`/users/${id}/role`, { role }).then(asItem);
+export const resetUserPassword = (id, newPassword) =>
+  api.put(`/users/${id}/password`, { newPassword }).then(asItem);
 export const deleteUser = (id) => api.delete(`/users/${id}`);
 
 /* Moderation */

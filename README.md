@@ -134,7 +134,9 @@ soft-delete with a Trash view across all content types.
 
 - The JWT is stored in localStorage and lives 15 days; there is no refresh or
   revocation flow. Acceptable for this scope, not for handling real payments.
-- No password change/reset flow; accounts are managed by the admin.
+- Password reset is admin-mediated: users change their own password from the
+  account menu (current password required), and an admin can set a new one for
+  a locked-out user. There is no email-based self-service reset.
 - AI features run on the Gemini free tier, so heavy use can hit daily quotas;
   every feature degrades to a non-AI fallback.
 - No unit-test suite; verification is the eval harness plus CI build checks.
