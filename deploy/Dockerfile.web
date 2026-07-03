@@ -1,0 +1,15 @@
+# syntax=docker/dockerfile:1
+
+# --- build the Vite SPA ---
+FROM node:20-slim AS build
+WORKDIR /app
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend/ ./
+# BASE_URL falls back to /api/v1 (same-origin), so no build-time API URL needed
+RUN npm run build
+
+# --- serve via Caddy (auto-HTTPS reverse proxy + static host) ---
+FROM caddy:2-alpine
+COPY deploy/Caddyfile /etc/caddy/Caddyfile
+COPY --from=build /app/dist /srv

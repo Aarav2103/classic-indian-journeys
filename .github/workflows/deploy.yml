@@ -1,0 +1,33 @@
+name: Deploy
+
+# Push to main -> SSH into the Lightsail box -> pull latest -> rebuild + restart.
+# The server builds the images itself (1GB box + swap handles it fine), so there's
+# no registry to manage. Also runnable on demand from the Actions tab.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# One deploy at a time; don't cancel an in-flight rebuild if another push lands.
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Rebuild on the server over SSH
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+            cd ~/classic-indian-journeys
+            git pull --ff-only origin main
+            docker compose up -d --build
+            docker image prune -f

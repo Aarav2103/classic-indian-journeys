@@ -1,0 +1,24 @@
+{$SITE_ADDRESS} {
+	encode zstd gzip
+
+	# API + health check -> backend container. Same origin as the SPA, so the
+	# browser never makes a cross-origin request and CORS never enters the picture.
+	handle /api/* {
+		reverse_proxy api:8000
+	}
+	handle /healthz {
+		reverse_proxy api:8000
+	}
+
+	# Everything else: the built SPA, with history fallback to index.html so
+	# client-side routes (e.g. /tours/123) resolve on hard refresh.
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+
+	log {
+		output stdout
+	}
+}

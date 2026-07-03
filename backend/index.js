@@ -56,6 +56,11 @@ if (missing.length) {
 const app = express();
 const port = process.env.PORT || 8000;
 
+// Behind a single reverse proxy (Caddy) in production, so the real client IP
+// arrives in X-Forwarded-For. Trust exactly one hop so express-rate-limit keys
+// on the actual visitor instead of lumping everyone under the proxy's IP.
+app.set("trust proxy", 1);
+
 const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:3000")
   .split(",")
   .map((s) => s.trim())

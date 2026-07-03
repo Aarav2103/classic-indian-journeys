@@ -1,0 +1,45 @@
+# Production stack for Classic Indian Journeys.
+# One box, two containers: Caddy (edge: TLS + static SPA + /api proxy) and the
+# API. MongoDB stays on Atlas (needed for Vector Search); point MONGO_URI at it.
+#
+#   docker compose up -d --build     # build + start
+#   docker compose logs -f           # watch logs
+#   docker compose run --rm api npm run seed:admin   # one-off seeders
+services:
+  api:
+    build: ./backend
+    env_file: [.env]
+    environment:
+      NODE_ENV: production
+      PORT: "8000"
+    restart: unless-stopped
+    expose:
+      - "8000" # internal only, reachable by Caddy, never exposed to the public
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 25s
+
+  web:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.web
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS}
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp" # HTTP/3
+    volumes:
+      - caddy_data:/data # persists Let's Encrypt certs across restarts
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

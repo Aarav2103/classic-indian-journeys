@@ -1,0 +1,11 @@
+# Applies to the web image build (context = repo root).
+**/node_modules
+**/dist
+**/build
+.git
+**/.env
+**/.env.local
+**/.env.*.local
+**/*.log
+# the web image only needs frontend/ + deploy/, not the API source
+backend
