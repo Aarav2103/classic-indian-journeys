@@ -350,7 +350,7 @@ const TourDetails = () => {
         </div>
       </section>
 
-      <FAQ limit={6} viewAll />
+      <FAQ limit={6} viewAll tour={id} anchors />
     </>
   );
 };

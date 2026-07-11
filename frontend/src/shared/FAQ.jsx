@@ -20,15 +20,19 @@ const FALLBACK = [
   { id: "fb-4", q: "Do you arrange flights, trains and permits?", a: "Flights and trains to your start city we advise on but don't ticket, you book direct and we shape the itinerary around your arrival. Where a journey needs an Inner Line Permit (Ladakh's high valleys, parts of the North-East), we arrange it for you." },
 ];
 
-const FAQ = ({ limit, viewAll = false, anchors = false, showHeader = true }) => {
+const FAQ = ({ limit, viewAll = false, anchors = false, showHeader = true, tour = null }) => {
   const [items, setItems] = useState(null); // null = loading
   const [open, setOpen] = useState(null);
   const location = useLocation();
 
   useEffect(() => {
     let alive = true;
+    // With `tour`, fetch THIS journey's own FAQs (scope:all, they live in the
+    // retrieval-only "deep" layer that's hidden from the general /faq list); without
+    // it, the general FAQ set (deep chunks excluded by the endpoint default).
+    const params = tour ? { category: "faq", tour, scope: "all" } : { category: "faq" };
     axios
-      .get(`${BASE_URL}/knowledge`, { params: { category: "faq" } })
+      .get(`${BASE_URL}/knowledge`, { params })
       .then((res) => {
         if (!alive) return;
         const data = res.data?.data || [];
@@ -38,7 +42,7 @@ const FAQ = ({ limit, viewAll = false, anchors = false, showHeader = true }) => 
     return () => {
       alive = false;
     };
-  }, []);
+  }, [tour]);
 
   const all = items || FALLBACK;
   const shown = limit ? all.slice(0, limit) : all;

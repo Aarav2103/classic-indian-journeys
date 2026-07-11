@@ -109,6 +109,9 @@ const Router = () => {
             <Route path="/gallery"    element={<Page><Gallery /></Page>} />
             <Route path="/contact"    element={<Page><Contact /></Page>} />
             <Route path="/tours/region/:region" element={<Page><RegionTourPage /></Page>} />
+            {/* /tours/featured is not a real page, it only ever collided with
+                /tours/:id and rendered a broken detail view. Redirect to the list. */}
+            <Route path="/tours/featured" element={<Navigate to="/tours" replace />} />
             <Route path="/tours/:id"  element={<Page><TourDetails /></Page>} />
             {/* Journal retired -> its slot is now Guides; redirect old links. */}
             <Route path="/blogs"      element={<Navigate to="/guides" replace />} />

@@ -1,0 +1,68 @@
+{
+  "target": "https://classicindianjourneys.com",
+  "connections": 10,
+  "duration": 15,
+  "ranAt": "2026-07-07T03:05:32.040Z",
+  "rows": [
+    {
+      "endpoint": "GET /tours (catalogue list)",
+      "connections": 10,
+      "duration": 15,
+      "reqPerSec": 29,
+      "p50": 331,
+      "p90": 379,
+      "p99": 546,
+      "max": 1243,
+      "bytesPerReq": 63012,
+      "non2xx": 0,
+      "errors": 0,
+      "timeouts": 0,
+      "total": 439
+    },
+    {
+      "endpoint": "GET /tours/:id (detail)",
+      "connections": 10,
+      "duration": 15,
+      "reqPerSec": 104,
+      "p50": 37,
+      "p90": 159,
+      "p99": 662,
+      "max": 676,
+      "bytesPerReq": 3368,
+      "non2xx": 0,
+      "errors": 0,
+      "timeouts": 0,
+      "total": 1564
+    },
+    {
+      "endpoint": "GET /tours/featured",
+      "connections": 10,
+      "duration": 15,
+      "reqPerSec": 28,
+      "p50": 340,
+      "p90": 409,
+      "p99": 935,
+      "max": 1043,
+      "bytesPerReq": 63007,
+      "non2xx": 0,
+      "errors": 0,
+      "timeouts": 0,
+      "total": 415
+    },
+    {
+      "endpoint": "GET /knowledge (public browse)",
+      "connections": 10,
+      "duration": 15,
+      "reqPerSec": 51,
+      "p50": 171,
+      "p90": 311,
+      "p99": 458,
+      "max": 563,
+      "bytesPerReq": 35685,
+      "non2xx": 0,
+      "errors": 0,
+      "timeouts": 0,
+      "total": 767
+    }
+  ]
+}

@@ -8,6 +8,15 @@ import { planTrip, planChat } from "../ai/agent.js";
 import { classifyIntent } from "../ai/router.js";
 import { askConcierge } from "../ai/concierge.js";
 
+// Card projection for the list/grid endpoints (getAllTour / getFeaturedTour /
+// getToursByRegion). Returns exactly what TourCard + the listing page render and
+// nothing they don't, dropping the per-tour heavy fields that only the DETAIL
+// page needs (itinerary, overview, highlights, bestMonths, tags, and all of
+// reviewInsights except the `aspects` the "Praised for..." chip reads). A load test
+// against prod showed the catalogue endpoints saturating at ~29 req/s because each
+// returned FULL tour docs (~235KB total); this trims the payload ~90%.
+const LIST_FIELDS = "title city photo price avgRating reviewCount duration maxGroupSize featured desc region reviewInsights.aspects";
+
 // Create new tour
 export const createTour = async (req, res) => {
   try {
@@ -84,7 +93,7 @@ export const getSingleTour = async (req, res) => {
 export const getAllTour = async (req, res) => {
   try {
     const pg = getPagination(req);
-    let query = Tour.find().sort({ createdAt: -1 });
+    let query = Tour.find().select(LIST_FIELDS).sort({ createdAt: -1 });
     if (pg) query = query.skip(pg.skip).limit(pg.limit);
     const tours = await query;
     const total = pg ? await Tour.countDocuments() : tours.length;
@@ -98,7 +107,7 @@ export const getAllTour = async (req, res) => {
 // Get featured tours
 export const getFeaturedTour = async (req, res) => {
   try {
-    const tours = await Tour.find({ featured: true });
+    const tours = await Tour.find({ featured: true }).select(LIST_FIELDS);
     res.status(200).json({
       success: true,
       message: "Featured tours retrieved successfully",
@@ -122,7 +131,7 @@ export const getToursByRegion = async (req, res) => {
     }
 
     const regex = new RegExp(`^${escapeRegex(slug)}$`, "i");
-    const tours = await Tour.find({ region: regex });
+    const tours = await Tour.find({ region: regex }).select(LIST_FIELDS);
 
     // Empty result is a valid 200 (consistent with getAllTour), not a 404.
     res.status(200).json({

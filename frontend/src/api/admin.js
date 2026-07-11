@@ -35,7 +35,7 @@ export const fetchReviews = () => api.get("/review").then(asArray);
 export const deleteReview = (id) => api.delete(`/review/${id}`);
 
 /* Knowledge (FAQs / Guides / Policies) */
-export const fetchKnowledge = () => api.get("/knowledge").then(asArray);
+export const fetchKnowledge = () => api.get("/knowledge", { params: { scope: "all" } }).then(asArray);
 export const createKnowledge = (body) => api.post("/knowledge", body).then(asItem);
 export const updateKnowledge = (id, body) => api.put(`/knowledge/${id}`, body).then(asItem);
 export const deleteKnowledge = (id) => api.delete(`/knowledge/${id}`);

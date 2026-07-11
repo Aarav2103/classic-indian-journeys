@@ -37,8 +37,11 @@ const GuideDetail = () => {
 
   useEffect(() => {
     let alive = true;
+    // scope:all so a concierge citation to any chunk (incl. the retrieval-only
+    // "deep" layer) still resolves here, this page renders ONLY the slug-matched
+    // article, so it never resurfaces the hidden guides as a grid.
     axios
-      .get(`${BASE_URL}/knowledge`)
+      .get(`${BASE_URL}/knowledge`, { params: { scope: "all" } })
       .then((res) => alive && setChunks(res.data?.data || []))
       .catch(() => alive && setChunks([]));
     return () => {

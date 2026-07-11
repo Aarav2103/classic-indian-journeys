@@ -12,7 +12,7 @@ import { embedTexts } from "../ai/embeddings.js";
 // intended reading order (e.g. a guide's "When to go" before "Getting around").
 export const listKnowledge = async (req, res) => {
   try {
-    const { category, region, tour } = req.query;
+    const { category, region, tour, scope } = req.query;
     const filter = {};
     if (category) filter.category = String(category);
     if (region) filter.region = new RegExp(`^${escapeRegex(String(region))}$`, "i");
@@ -20,6 +20,13 @@ export const listKnowledge = async (req, res) => {
     // tourRefs, TourDetails fetches them with ?tour=<id>. Guard the id format so
     // a bad value can't trigger an ObjectId cast error (it just matches nothing).
     if (tour && /^[a-f\d]{24}$/i.test(String(tour))) filter.tourRefs = String(tour);
+    // The corpus is dual-purpose: the concierge RETRIEVES the whole thing (via
+    // $vectorSearch, not this endpoint), but the public pages RENDER one card per
+    // chunk. The large sourceType:"deep" expansion layer is retrieval-only, surfacing
+    // it here spams the Guides/FAQ/tour pages, so hide it by default. Callers that
+    // legitimately need everything (admin CRUD table, per-tour detail, and citation
+    // deep-links that must resolve any retrieved chunk) pass ?scope=all.
+    if (scope !== "all") filter.sourceType = { $ne: "deep" };
 
     const data = await KnowledgeArticle.find(filter).sort({ _id: 1 }).lean();
     res.status(200).json({ success: true, count: data.length, data });

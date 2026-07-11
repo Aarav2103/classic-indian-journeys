@@ -14,7 +14,9 @@ export const slugify = (s = "") =>
 // the source title's slug. `id` (the chunk _id) becomes the scroll anchor.
 export const knowledgeHref = ({ category, sourceTitle, region, tourRef, id } = {}) => {
   const anchor = id ? `#${id}` : "";
-  if (category === "faq") return `/faq${anchor}`;
+  // General FAQs live on /faq; a journey-specific FAQ (the retrieval-only per-tour
+  // set, hidden from /faq) lives on its tour page, so cite it there.
+  if (category === "faq") return tourRef ? `/tours/${tourRef}${anchor}` : `/faq${anchor}`;
   if (category === "policy") return `/policies${anchor}`;
   // Per-journey fine print lives on the tour page; a region's permits live on its
   // region guide (whose slug is deterministically `<region>-destination-guide`).
