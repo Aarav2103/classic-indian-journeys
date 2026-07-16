@@ -11,6 +11,7 @@ import { KNOWLEDGE_CATEGORIES } from "../models/KnowledgeArticle.js";
 import verifyToken, { verifyAdmin } from "../utils/verifyToken.js";
 import { validateObjectId } from "../utils/validateObjectId.js";
 import { validateBody } from "../utils/validate.js";
+import { cacheRead } from "../utils/responseCache.js";
 
 // Knowledge corpus: public read powers the FAQ/Policies/Guides pages and is
 // the same content the concierge cites. Admin CRUD lets the owner edit it; the
@@ -26,8 +27,8 @@ const knowledgeSchema = z.object({
   tourRefs: z.array(z.string().regex(/^[a-f\d]{24}$/i)).max(40).optional().default([]),
 });
 
-// Public read.
-knowledgeRoute.get("/", listKnowledge);
+// Public read (cached; admin writes below bust it via clearReadCache).
+knowledgeRoute.get("/", cacheRead(60_000), listKnowledge);
 
 // Admin writes.
 knowledgeRoute.post("/", verifyToken, verifyAdmin, validateBody(knowledgeSchema), createKnowledge);

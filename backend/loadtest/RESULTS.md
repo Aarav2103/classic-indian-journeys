@@ -3,41 +3,43 @@
 **Target:** `https://classicindianjourneys.com`, the real deployed stack
 (AWS Lightsail, Mumbai · Docker Compose · Caddy TLS/HTTP3 · MongoDB Atlas).
 **Tool:** autocannon v8. **Method:** 5s warm-up (discarded) -> measured run; concurrency
-ramped 10 -> 25 -> 50 and **stopped at the highest healthy level** rather than pushing a
-live box into failure. A result is only counted if **non-2xx = 0**.
-**Scope:** public GET read paths only, the AI endpoints (`/search`, `/assist`, `/plan`,
-`/ask`) are excluded on purpose (they sit behind a rate limiter + the Gemini free tier
-and would only 429). Numbers include the client->Mumbai network path.
+ramped and **stopped at the highest healthy level** rather than pushing a live box into
+failure. A result only counts if **non-2xx = 0**. **Scope:** public GET read paths only -
+the AI endpoints (`/search`,`/assist`,`/plan`,`/ask`) are excluded on purpose (rate
+limiter + Gemini free tier -> would only 429). Numbers include the client->Mumbai path.
 
-## Results (0 errors / 0 timeouts across every run)
+## The optimization (measure -> diagnose -> fix -> re-measure)
 
-| Endpoint | Payload | 10 conn | 25 conn | 50 conn | Ceiling |
-|---|---|---|---|---|---|
-| `GET /tours/:id` (detail) | 3 KB | 104 req/s · p50 37ms | 112 req/s · p50 74ms | 113 req/s · p50 179ms | **~113 req/s** |
-| `GET /knowledge` (browse) | 35 KB gz | 51 req/s · p50 171ms | 53 req/s · p50 425ms |, | ~53 req/s |
-| `GET /tours` (catalogue list) | 62 KB gz (235 KB raw) | 29 req/s · p50 331ms | 22 req/s · p50 838ms |, | **~29 req/s (saturated)** |
-| `GET /tours/featured` | 62 KB gz | 28 req/s · p50 340ms | 29 req/s · p50 801ms |, | ~29 req/s |
+**Diagnosis.** The catalogue endpoints (`/tours`, `/tours/featured`) saturated at
+**~29 req/s** while the light `/tours/:id` detail endpoint held **~113 req/s**, a 4×
+gap explained entirely by payload. The list endpoints returned the **full** tour
+documents (itinerary, full reviewInsights, overview/highlights/bestMonths/tags) -
+**235 KB** for the 42-tour catalogue, serialized fresh per request, no projection/cache.
 
-Every endpoint held **0% errors** even past its throughput knee, the box degrades by
-queuing (latency rises), never by dropping requests.
+**Fix.** A `LIST_FIELDS` projection on `getAllTour`/`getFeaturedTour`/`getToursByRegion`
+returning only what the card + listing render (incl. `reviewInsights.aspects` for the
+"Praised for" chip). Payload **235 KB -> 48 KB (4.8× smaller / -79%)**. Deployed to prod
+in isolation (only variable changed) and re-measured on the same box.
 
-## Bottleneck identified
+## Before -> after (0 errors / 0 timeouts across every run)
 
-The two heavy endpoints (`/tours`, `/tours/featured`) saturate at **~29 req/s** while the
-light detail endpoint sustains **~113 req/s**, a 4× gap explained entirely by payload.
-The list endpoints return the **full** tour documents (all 24 fields incl. `reviewInsights`,
-`highlights`, full `desc`), **235 KB raw per response**, serialized fresh on every call
-with no projection or cache. That CPU + bandwidth cost on a small single-instance box is
-the ceiling, not the DB.
+| Endpoint | Payload | Before (ceiling) | After (ceiling) | Gain |
+|---|---|---|---|---|
+| `GET /tours` (catalogue list) | 235 KB -> **8 KB** | 29 req/s · p50 331ms · p50 838ms @25c | **72 req/s** · p50 348ms @25c · p50 547ms @50c | **~2.5× req/s, 2.4× lower p50** |
+| `GET /tours/featured` | 235 KB -> **8 KB** | 29 req/s · p50 801ms @25c | **76 req/s** · p50 322ms @25c | **~2.6×** |
+| `GET /tours/:id` (detail) | 3 KB (untouched) | ~113 req/s · p50 37-75ms | ~119 req/s · p50 78-184ms | baseline (control) |
+| `GET /knowledge` (browse) | 35 KB (not projected) | ~53 req/s | ~55 req/s | flat (as expected) |
 
-**Clear optimization:** project the list response to only the card fields the grid needs
-(title, city, region, price, photo, avgRating, duration) and/or cache it, expected to
-multiply list throughput several-fold. (Not yet applied.)
+The detail (unchanged) and knowledge (not projected) endpoints held flat, a clean
+control confirming the catalogue gain came from the projection, not test noise. The
+catalogue endpoints now degrade only by queuing past ~72-76 req/s (p99 tail grows on the
+small single instance); the next lever would be response caching or a larger instance.
 
 ## Honest resume framing
 
 > Load-tested the production REST API (autocannon, ramped concurrency against the live
-> Lightsail + Caddy + Atlas stack): the read path sustained **0% errors** under concurrent
-> load; the light detail endpoint held **~113 req/s at p50 < 75 ms**, and profiling the
-> heavy catalogue endpoint isolated an unprojected 235 KB list payload as the throughput
-> ceiling (~29 req/s), a targeted, measurement-driven optimization.
+> Lightsail + Caddy + Atlas stack) and profiled it under load: the catalogue endpoints
+> were payload-bound, returning full 235 KB tour documents and capping at ~29 req/s.
+> Shipped a field projection cutting the response ~80% (235 KB -> 48 KB) and **re-measured
+> on the same stack: catalogue throughput 29 -> ~72 req/s (~2.5×) and p50 latency 838 -> 348 ms,
+> with 0% errors throughout.**

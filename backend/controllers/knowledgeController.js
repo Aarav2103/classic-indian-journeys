@@ -2,6 +2,7 @@ import KnowledgeArticle from "../models/KnowledgeArticle.js";
 import { escapeRegex } from "../utils/escapeRegex.js";
 import { isAIConfigured } from "../ai/client.js";
 import { embedTexts } from "../ai/embeddings.js";
+import { clearReadCache } from "../utils/responseCache.js";
 
 // Public, read-only access to the knowledge corpus, the SAME chunks the RAG
 // concierge retrieves and cites. The FAQ, Policies and Guides pages render from
@@ -76,6 +77,7 @@ export const createKnowledge = async (req, res) => {
       needsReembed = true;
     }
     const doc = await KnowledgeArticle.create({ title, body, category, sourceTitle, region, tourRefs, sourceType: "knowledge", embedding, needsReembed });
+    clearReadCache();
     res.status(201).json({ success: true, message: "Article created", data: { ...doc.toObject(), embedding: undefined } });
   } catch (err) {
     console.error("Create Knowledge Error:", err.message);
@@ -108,6 +110,7 @@ export const updateKnowledge = async (req, res) => {
       }
     }
     await doc.save();
+    clearReadCache();
     res.status(200).json({ success: true, message: "Article updated", data: { ...doc.toObject(), embedding: undefined } });
   } catch (err) {
     console.error("Update Knowledge Error:", err.message);
@@ -120,6 +123,7 @@ export const deleteKnowledge = async (req, res) => {
     const doc = await KnowledgeArticle.findById(req.params.id);
     if (!doc) return res.status(404).json({ success: false, message: "Article not found" });
     await doc.softDelete(); // restorable from Trash
+    clearReadCache();
     res.status(200).json({ success: true, message: "Article moved to Trash" });
   } catch (err) {
     console.error("Delete Knowledge Error:", err.message);

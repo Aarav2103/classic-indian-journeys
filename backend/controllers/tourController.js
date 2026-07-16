@@ -7,6 +7,7 @@ import { parseSearchIntent, intentToMongoFilter, intentToSort, findTours } from 
 import { planTrip, planChat } from "../ai/agent.js";
 import { classifyIntent } from "../ai/router.js";
 import { askConcierge } from "../ai/concierge.js";
+import { clearReadCache } from "../utils/responseCache.js";
 
 // Card projection for the list/grid endpoints (getAllTour / getFeaturedTour /
 // getToursByRegion). Returns exactly what TourCard + the listing page render and
@@ -22,6 +23,7 @@ export const createTour = async (req, res) => {
   try {
     const newTour = new Tour(req.body);
     const savedTour = await newTour.save();
+    clearReadCache();
     res.status(201).json({
       success: true,
       message: "Successfully created",
@@ -44,6 +46,7 @@ export const updateTour = async (req, res) => {
     if (!updatedTour) {
       return res.status(404).json({ success: false, message: "Tour not found" });
     }
+    clearReadCache();
     res.status(200).json({
       success: true,
       message: "Tour updated successfully",
@@ -64,6 +67,7 @@ export const deleteTour = async (req, res) => {
       return res.status(404).json({ success: false, message: "Tour not found" });
     }
     await tour.softDelete();
+    clearReadCache();
     res.status(200).json({ success: true, message: "Tour moved to Trash" });
   } catch (err) {
     console.error("Delete Tour Error:", err);

@@ -20,6 +20,7 @@ import {
 import verifyToken, { verifyAdmin } from "../utils/verifyToken.js";
 import { validateObjectId } from "../utils/validateObjectId.js";
 import { aiLimiter } from "../utils/rateLimiters.js";
+import { cacheRead } from "../utils/responseCache.js";
 
 const tourRoute = express.Router();
 
@@ -106,16 +107,18 @@ const askSchema = z.object({
 });
 tourRoute.post("/ask", aiLimiter, validateBody(askSchema), conciergeAsk);
 
-// Specific routes (put these BEFORE /:id)
-tourRoute.get("/featured", getFeaturedTour);
-tourRoute.get("/region/:region", getToursByRegion);
-tourRoute.get("/count", getTourCount);
+// Specific routes (put these BEFORE /:id). Public read GETs are cached (see
+// utils/responseCache.js) so the catalogue scales to high concurrency without a
+// DB round-trip per request; cache is busted on any create/update/delete below.
+tourRoute.get("/featured", cacheRead(60_000), getFeaturedTour);
+tourRoute.get("/region/:region", cacheRead(60_000), getToursByRegion);
+tourRoute.get("/count", cacheRead(300_000), getTourCount);
 tourRoute.get("/ai-status", getAIStatus);
 
 // Generic route - keep this LAST
-tourRoute.get("/:id", validateObjectId("id"), getSingleTour);
+tourRoute.get("/:id", validateObjectId("id"), cacheRead(60_000), getSingleTour);
 
 // General tours (no params)
-tourRoute.get("/", getAllTour);
+tourRoute.get("/", cacheRead(60_000), getAllTour);
 
 export default tourRoute;

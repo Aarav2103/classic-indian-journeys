@@ -22,4 +22,4 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=25s --retries=3 \
   CMD node -e "fetch('http://localhost:8000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 ENTRYPOINT ["tini", "--"]
-CMD ["node", "index.js"]
+CMD ["node", "cluster.js"]
