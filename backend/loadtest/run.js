@@ -1,12 +1,13 @@
-// Load test for the public read API (autocannon). Measures the REAL page-traffic
-// read path, catalogue list, tour detail, featured, public knowledge, NOT the AI
-// endpoints (/search,/assist,/plan,/ask): those sit behind aiLimiter + the Gemini
-// free tier and would just 429, telling us nothing about app throughput.
+// autocannon load test over the public read path: catalogue list, tour detail,
+// featured, public knowledge. Deliberately not the AI endpoints, those sit behind
+// the rate limiter and the Gemini free tier and would just 429, which says nothing
+// about app throughput.
 //
-// Honesty knobs: a discarded WARMUP run primes TLS/keep-alive + the DB pool before
-// the measured run; every endpoint reports non-2xx (the req/s number is only valid
-// at ~0 errors). Parameterised so a prod run can RAMP concurrency and stop at the
-// highest healthy level rather than pushing a live box into failure.
+// A discarded warmup run primes TLS, keep-alive and the DB pool before the
+// measured one, and every endpoint reports non-2xx counts since the req/s figure
+// only means anything at roughly zero errors. Parameterised so a prod run can ramp
+// concurrency and stop at the highest healthy level instead of knocking a live box
+// over.
 //
 //   TARGET=https://classicindianjourneys.com CONN=25 DUR=20 node loadtest/run.js
 import autocannon from "autocannon";
@@ -34,7 +35,9 @@ const fire = (url, connections, duration) =>
 const kb = (b) => (b / 1024).toFixed(0);
 const summarise = (r) => ({
   reqPerSec: Math.round(r.requests.average),
-  p50: r.latency.p50, p90: r.latency.p90, p99: r.latency.p99, max: r.latency.max,
+  // autocannon has no exact p95; p90 <= p95 <= p97_5, so p97_5 is a conservative
+  // upper bound for a "p95 < X" claim.
+  p50: r.latency.p50, p90: r.latency.p90, p97_5: r.latency.p97_5, p99: r.latency.p99, max: r.latency.max,
   bytesPerReq: Math.round(r.throughput.total / Math.max(1, r.requests.total)),
   non2xx: r.non2xx, errors: r.errors, timeouts: r.timeouts, total: r.requests.total,
 });
@@ -45,12 +48,14 @@ const run = async () => {
   const rows = [];
   for (const ep of ENDPOINTS) {
     const url = TARGET + ep.path;
-    process.stdout.write(`- ${ep.name}\n    warmup...`);
+    process.stdout.write(`- ${ep.name}\n    prewarm...`);
+    await fetch(url).catch(() => {}); // single request to populate the cache (avoid cold-start stampede)
+    process.stdout.write(" warmup...");
     await fire(url, CONN, WARMUP); // discarded
     process.stdout.write(" measuring...\n");
     const s = summarise(await fire(url, CONN, DUR));
     const health = s.non2xx === 0 && s.errors === 0 && s.timeouts === 0 ? "OK" : "⚠ DEGRADED";
-    console.log(`    ${s.reqPerSec} req/s | p50 ${s.p50}ms p90 ${s.p90}ms p99 ${s.p99}ms max ${s.max}ms | ${kb(s.bytesPerReq)}KB/req | non2xx=${s.non2xx} err=${s.errors} timeout=${s.timeouts} | ${health}\n`);
+    console.log(`    ${s.reqPerSec} req/s | p50 ${s.p50}ms p90 ${s.p90}ms p95<=${s.p97_5}ms p99 ${s.p99}ms max ${s.max}ms | ${kb(s.bytesPerReq)}KB/req | non2xx=${s.non2xx} err=${s.errors} timeout=${s.timeouts} | ${health}\n`);
     rows.push({ endpoint: ep.name, connections: CONN, duration: DUR, ...s });
   }
   const out = path.join(__dirname, `results.c${CONN}.json`);

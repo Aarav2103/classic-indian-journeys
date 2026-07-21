@@ -8,19 +8,19 @@ import { buildEvidence } from "./gold.js";
 import { ablationCases } from "./datasets.js";
 import { mean, pct } from "./scorers.js";
 
-// ABLATION: the RAG concierge vs a "stuff the whole corpus into context" baseline.
-// Same questions, same LLM-judge, same find_tours tool; the ONLY difference is
-// whether knowledge is vector-retrieved (top-k) or dumped wholesale into the prompt.
-// It reports the crossover that justifies (or doesn't) the RAG architecture at the
-// current corpus size: answer quality (faithfulness), prompt-token cost, and latency.
+// RAG concierge vs dumping the whole corpus into context. Same questions, same
+// judge, same find_tours tool. Only difference is whether knowledge gets
+// vector-retrieved top-k or shoved in wholesale. Reports quality, prompt-token
+// cost and latency, which is what says whether RAG earns its keep at the current
+// corpus size.
 //
-// Honest framing: at a small corpus we EXPECT the two to TIE on quality while the
-// stuffed arm burns far more tokens, that's data point one. Re-run after the corpus
-// grows to plot where (if) stuffing starts to degrade. Not a CI gate on the
-// comparison: it only fails if the RAG arm itself stops being faithful.
+// At this corpus size I expect them to tie on quality with the stuffed arm burning
+// far more tokens. That's the first data point. Re-run as the corpus grows to find
+// where stuffing starts to fall over. Not a CI gate on the comparison itself, it
+// only fails if the RAG arm stops being faithful.
 //
-// Excluded from the default `npm run eval` set (it doubles concierge cost); run it
-// explicitly:  npm run eval -- --only=ablation   (or  npm run eval:ablation).
+// Left out of the default eval run since it doubles concierge cost:
+//   npm run eval -- --only=ablation
 
 export const runAblation = async ({ sleep, PACE_MS, withRetry, bar, ICON }) => {
   console.log(`\n${bar}\nAblation · RAG vs full-context stuffing  (quality / tokens / latency)\n${bar}`);
@@ -82,21 +82,33 @@ export const runAblation = async ({ sleep, PACE_MS, withRetry, bar, ICON }) => {
     const line = {};
 
     for (const [name, run] of [["rag", askConcierge], ["stuffed", askConciergeStuffed]]) {
-      const { out: res, ms } = await timed(() => withRetry(() => run({ messages: [{ role: "user", content: c.q }], temperature: EVAL_TEMPERATURE }), `ablation-${name}`));
+      try {
+        // At a large corpus the stuffed arm re-sends the whole (~115k-token) corpus on
+        // EVERY agent turn, so a tool-using query can blow a per-minute token budget in a
+        // single interaction. Fail FAST there (tries=1) rather than let withRetry re-spend
+        // the exhausted budget 6×, then cool down and record the case as unmeasurable at
+        // this corpus size (itself a finding), instead of aborting the whole run.
+        const tries = name === "stuffed" ? 1 : 6;
+        const { out: res, ms } = await timed(() => withRetry(() => run({ messages: [{ role: "user", content: c.q }], temperature: EVAL_TEMPERATURE }), `ablation-${name}`, tries));
 
-      const j = await judgeArm(c, res, evidence);
-      const a = arms[name];
-      a.faithful.push(j.faithful ? 1 : 0);
-      a.judge.push(j.score);
-      a.ptok.push(res.usage?.promptTokens || 0);
-      a.ms.push(ms);
-      line[name] = { faithful: j.faithful, judge: j.score, ptok: res.usage?.promptTokens || 0, ms };
+        const j = await judgeArm(c, res, evidence);
+        const a = arms[name];
+        a.faithful.push(j.faithful ? 1 : 0);
+        a.judge.push(j.score);
+        a.ptok.push(res.usage?.promptTokens || 0);
+        a.ms.push(ms);
+        line[name] = { faithful: j.faithful, judge: j.score, ptok: res.usage?.promptTokens || 0, ms };
 
-      if (gt) {
-        // The sharper quality axis: did THIS arm answer about the RIGHT entity?
-        const sc = await withRetry(() => judgeScopedCorrectness({ question: c.q, answer: res.reply, facts: gt.facts, groundTruth: gt.text }), `ablation-scoped-${name}`);
-        a.scopedCorrect.push(sc.correct ? 1 : 0);
-        line[name].scoped = sc;
+        if (gt) {
+          // The sharper quality axis: did THIS arm answer about the RIGHT entity?
+          const sc = await withRetry(() => judgeScopedCorrectness({ question: c.q, answer: res.reply, facts: gt.facts, groundTruth: gt.text }), `ablation-scoped-${name}`);
+          a.scopedCorrect.push(sc.correct ? 1 : 0);
+          line[name].scoped = sc;
+        }
+      } catch (e) {
+        line[name] = { skipped: String(e?.message || e).replace(/\s+/g, " ").slice(0, 90) };
+        arms[name].skipped = (arms[name].skipped || 0) + 1;
+        await sleep(65_000); // let the per-minute token budget clear before the next case
       }
       await sleep(PACE_MS);
     }
@@ -104,6 +116,7 @@ export const runAblation = async ({ sleep, PACE_MS, withRetry, bar, ICON }) => {
     console.log(`  [${c.kind}]${gt ? " {scoped}" : ""} "${c.q}"`);
     for (const name of ["rag", "stuffed"]) {
       const L = line[name];
+      if (!L || L.skipped) { console.log(`      ${name.padEnd(7)} ⚠ skipped (${L?.skipped || "no data"})`); continue; }
       const scopedStr = L.scoped ? `  scope ${L.scoped.correct ? "✓right-journey" : L.scoped.confused ? "✗WRONG-ENTITY" : "✗"}` : "";
       console.log(`      ${name.padEnd(7)} ${ICON(L.faithful)} judge ${L.judge}/5  ${L.ptok} ptok  ${L.ms}ms${scopedStr}`);
     }
@@ -115,6 +128,8 @@ export const runAblation = async ({ sleep, PACE_MS, withRetry, bar, ICON }) => {
 
   const scopedN = r.scopedCorrect.length;
   const metrics = [
+    ["cases measured", `RAG ${r.faithful.length} · stuffed ${s.faithful.length} (of ${r.faithful.length + (r.skipped || 0)})`],
+    ["stuffed cases UNMEASURABLE (free-tier TPM)", String(s.skipped || 0)],
     ["RAG faithful", pct(mean(r.faithful))],
     ["stuffed faithful", pct(mean(s.faithful))],
     // The sharper quality axis, only over scoped cases (did it answer the RIGHT entity?).
@@ -124,7 +139,7 @@ export const runAblation = async ({ sleep, PACE_MS, withRetry, bar, ICON }) => {
     ["stuffed judge (mean)", `${mean(s.judge).toFixed(2)}/5`],
     ["RAG prompt-tokens (mean)", String(Math.round(ragTok))],
     ["stuffed prompt-tokens (mean)", String(Math.round(stuffedTok))],
-    ["token ratio (stuffed÷RAG)", `${ratio.toFixed(1)}×`],
+    ["token ratio (stuffed/RAG)", `${ratio.toFixed(1)}×`],
     ["RAG latency (mean)", `${Math.round(mean(r.ms))}ms`],
     ["stuffed latency (mean)", `${Math.round(mean(s.ms))}ms`],
   ];

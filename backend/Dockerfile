@@ -7,7 +7,7 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 
 # --- runtime ---
-FROM node:20-slim AS runtime
+FROM node:20-slim AS runtime    
 ENV NODE_ENV=production
 WORKDIR /app
 # tini = tiny init so SIGTERM reaches node -> clean shutdown / fast restarts

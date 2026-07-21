@@ -97,7 +97,7 @@ const REGION_ALIASES = {
   "north-east-india": ["north-east", "north east", "northeast", "ne india", "arunachal", "nagaland", "sikkim", "meghalaya", "assam"],
   "leh-ladakh": ["ladakh", "leh", "nubra", "pangong", "tso moriri"],
 };
-const detectRegion = (query = "") => {
+export const detectRegion = (query = "") => {
   const q = String(query).toLowerCase();
   for (const [slug, aliases] of Object.entries(REGION_ALIASES)) {
     if (aliases.some((a) => q.includes(a))) return slug;
@@ -106,7 +106,7 @@ const detectRegion = (query = "") => {
 };
 
 // Candidate lists
-const vectorCandidates = async (queryVector, { k, category, region }) => {
+export const vectorCandidates = async (queryVector, { k, category, region }) => {
   const filter = {};
   if (category) filter.category = category;
   if (region) filter.region = region;
@@ -128,7 +128,7 @@ const vectorCandidates = async (queryVector, { k, category, region }) => {
     .toArray();
 };
 
-const textCandidates = async (queryText, { k, category, region }) => {
+export const textCandidates = async (queryText, { k, category, region }) => {
   const filters = [];
   if (category) filters.push({ equals: { path: "category", value: category } });
   if (region) filters.push({ equals: { path: "region", value: region } });
@@ -169,8 +169,11 @@ const fuse = (lists, k) => {
 // Retrieve the top-k chunks for a query via hybrid (vector + BM25) RRF, with a
 // region-aware boost. Optional category/region pre-filters (from the caller, e.g.
 // when the concierge passes them). Returns lightweight chunks + a fused score.
-export const retrieveKnowledge = async (query, { k = 6, category, region } = {}) => {
-  const queryVector = await embedQuery(query);
+// Hybrid retrieval given an ALREADY-embedded query vector, vector + BM25 fused via
+// RRF with the region-aware boost. Split out from retrieveKnowledge so callers that
+// already hold the vector (e.g. the retrieval ablation running vector-only AND hybrid
+// on one embedding) don't re-embed. Behaviour identical to the old inline body.
+export const retrieveFromVector = async (queryVector, query, { k = 6, category, region } = {}) => {
   const over = Math.max(k * 2, 12); // over-fetch each arm, then fuse down to k
 
   const [vec, txt] = await Promise.all([
@@ -192,3 +195,14 @@ export const retrieveKnowledge = async (query, { k = 6, category, region } = {})
 
   return fuse(lists.filter((l) => l.length), k);
 };
+
+// Retrieve the top-k chunks for a query. ai/concierge.js exposes this as the
+// search_knowledge tool. VECTOR-ONLY: a 444-query ground-truth-anchored ablation
+// (evals/retrievalAblation*.js) showed pure dense retrieval beats equal-weight
+// vector+BM25 RRF on EVERY metric on this corpus/workload (hit@8 98.9% vs 96.8%,
+// hit@1 80.9% vs 60.4%, MRR 0.885 vs 0.736), RRF fusion demoted the semantically
+// correct top hit, and no fusion weighting recovered it. The hybrid path
+// (retrieveFromVector, + the BM25/region arms) is kept exported for the ablation and
+// as a documented, revertable fallback should a keyword-heavy workload warrant it.
+export const retrieveKnowledge = async (query, { k = 6, category, region } = {}) =>
+  vectorCandidates(await embedQuery(query), { k, category, region });

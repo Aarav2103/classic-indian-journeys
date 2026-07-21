@@ -1,29 +1,24 @@
-// Track C, DEEP corpus expansion that takes the RAG knowledge base past ~1,000
-// chunks with genuine, domestic content a luxury India studio would truly publish,
-// NOT manufactured padding. Every chunk is grounded in the real catalogue (a tour's
-// route/region/price, or a real place/season) so it never contradicts the tours.
+// Track C. Pushes the knowledge base past ~1000 chunks with content the studio
+// would actually publish, not padding. Everything is grounded in the real
+// catalogue so a chunk can't contradict a tour's route, region or price.
 //
-// It adds five genuine layers, all scoped for metadata-filtered retrieval:
-//   - deep per-tour sections (tour-info): where you'll stay, when to travel THIS
-//     journey, who it suits, pace & fitness, how to extend/pair, getting there,
-//     a typical day, food, photography, ONE set per tour, scoped via tourRefs.
-//   - per-tour FAQ (faq): 6 tour-specific Q&As, scoped via tourRefs.
-//   - place guides (region-guide): signature towns/places per region, scoped by region.
-//   - theme guides (guide): 24 thematic guides distinct from the existing ones.
-//   - month-by-month (guide): where to go / what to expect, per calendar month.
+// Five layers, all scoped so retrieval can filter on metadata:
+//   tour-info     deep per-tour sections (stays, when to travel this one, who it
+//                 suits, pace, getting there, a typical day, food, photography).
+//                 One set per tour, scoped via tourRefs.
+//   faq           6 tour-specific Q&As, also tourRefs.
+//   region-guide  signature towns and places, scoped by region.
+//   guide         24 theme guides, plus a month-by-month set.
 //
-// ADDITIVE + idempotent: every chunk carries sourceType:"deep", inserted ALONGSIDE
-// the core corpus (seedKnowledge.js), tour-info/permit (seedTourKnowledge.js) and
-// sourceType:"extra" (seedKnowledgeExtra.js), never wiping them. Skips if "deep"
-// chunks exist; --force wipes ONLY sourceType "deep" and regenerates.
+// Additive and idempotent. Every chunk carries sourceType "deep" and goes in
+// alongside the other seeders instead of replacing them. Skips if deep chunks
+// already exist, --force wipes only sourceType deep.
 //
-// Because generation burns real Gemini quota, it CHECKPOINTS: the generated chunks
-// are written to a JSON file after authoring (before embedding) and again after
-// embedding, so a later network/insert failure can resume with --resume <file>
-// instead of re-spending generation quota. --dry writes the embedded JSON and skips
-// the DB insert (for the JSON-handoff path).
+// Generation burns real quota, so it checkpoints to JSON after authoring and
+// again after embedding. A failed insert resumes with --resume <file> rather
+// than paying for generation twice. --dry stops before the DB write.
 //
-// Run:  node seedKnowledgeDeep.js [--force] [--dry] [--resume <embedded.json>]
+// node seedKnowledgeDeep.js [--force] [--dry] [--resume <embedded.json>]
 import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
@@ -66,6 +61,16 @@ const regionLabel = (slug) => slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.
 
 // Domestic house voice (matches the other three seed scripts).
 const VOICE = `You write for a luxury India travel studio whose guests are discerning INDIAN travellers exploring their own country, in a quiet, editorial, slow-travel voice, unhurried, sensory, understated, never salesy or breathless. All prices are in INR. These are DOMESTIC journeys within India, do NOT mention visas, international arrival/airfare, or foreign exchange at all; refer to a journey's DEPARTURE or START city, never "arrival in India". Be warm but genuinely useful and concrete; never contradict the facts you are given, and never invent places that are not in the journey's route or region.`;
+
+// Seasonal accuracy guard: hill stations are the classic warm-season escape, their
+// whole appeal is staying cool while the plains grow hot. When writing about any hill
+// station or high-altitude retreat (the Nilgiris/Ooty/Coonoor, Munnar, Coorg, Himalayan
+// hill towns, Ladakh), make clear it stays cool and pleasant through the hot April-June
+// months and is a refuge THEN: never tell travellers to simply "avoid" those months
+// there. Reserve "avoid the April-May heat" for the plains, coast and temple/backwater
+// circuits, which genuinely do swelter. (Fixes a corpus contradiction the concierge eval
+// caught: hill-station chunks wrongly blanket-inherited the lowland "avoid summer" rule.)
+const HILL_SEASON_NOTE = `\n\nSEASONS: hill stations & high-altitude retreats (Nilgiris/Ooty/Coonoor, Munnar, Coorg, Himalayan hill towns, Ladakh) stay COOL and PLEASANT through the hot April-June months and are the classic warm-season escape, say so; do NOT tell travellers to "avoid" summer there. Only the plains, coast and temple/backwater lowlands should be described as too hot in April-May.`;
 
 // Schemas
 const sectionSchema = { type: Type.OBJECT, properties: { heading: { type: Type.STRING }, body: { type: Type.STRING } }, required: ["heading", "body"] };
@@ -155,7 +160,7 @@ const genRegionPlaces = async (r, ctxLine) => {
 
 const genPlaceGuide = async (r, place, tourIds, ctxLine) => {
   const out = await generateStructured({
-    system: `${VOICE}\n\nWrite a short place guide for ONE real place in India, grounded in the region context. Use only places and seasons consistent with the facts; never invent sights.`,
+    system: `${VOICE}\n\nWrite a short place guide for ONE real place in India, grounded in the region context. Use only places and seasons consistent with the facts; never invent sights.${HILL_SEASON_NOTE}`,
     userText: `${ctxLine}\nPlace: ${place} (in ${regionLabel(r)}).\n\nWrite 3 sections (heading + 2-4 sentences each): "What awaits you", "When to go", "Good to know".`,
     responseSchema: sectionsSchema,
   });
@@ -183,7 +188,7 @@ const THEMES = [
 
 const genTheme = async (theme, regionsLine) => {
   const out = await generateStructured({
-    system: `${VOICE}\n\nWrite a short thematic travel guide grounded ONLY in the regions and seasons we actually offer. Never invent destinations or guarantee wildlife sightings.`,
+    system: `${VOICE}\n\nWrite a short thematic travel guide grounded ONLY in the regions and seasons we actually offer. Never invent destinations or guarantee wildlife sightings.${HILL_SEASON_NOTE}`,
     userText: `Regions we cover: ${regionsLine}.\n\nGuide: ${theme}.\n\nWrite 3 sections (heading + 2-4 sentences each) that together help a traveller think about this across our journeys.`,
     responseSchema: sectionsSchema,
   });
