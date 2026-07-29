@@ -1,6 +1,6 @@
 name: Deploy
 
-# Push to main -> SSH into the Lightsail box -> pull latest -> rebuild + restart.
+# Push to main -> SSH into the Lightsail box -> sync to main -> rebuild + restart.
 # The server builds the images itself (1GB box + swap handles it fine), so there's
 # no registry to manage. Also runnable on demand from the Actions tab.
 on:
@@ -24,10 +24,15 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script_stop: true
           script: |
             set -euo pipefail
             cd ~/classic-indian-journeys
-            git pull --ff-only origin main
+            # The box is a mirror of main, it never has local commits, so reset
+            # instead of pulling. A --ff-only pull dies whenever main is rewritten
+            # and then needs fixing by hand over SSH.
+            # No git clean here on purpose: .env lives in this directory untracked
+            # and reset leaves it alone.
+            git fetch --prune origin main
+            git reset --hard FETCH_HEAD
             docker compose up -d --build
             docker image prune -f
