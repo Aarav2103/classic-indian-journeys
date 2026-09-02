@@ -31,8 +31,8 @@ const testimonials = [
       "We wanted heritage, not a checklist. Classic Indian Journeys built us a slow, two-week route through Jaipur, Khajuraho and Hampi. Every host they put us with felt like family.",
   },
   {
-    name: "A traveller from Pune",
-    location: "Verified booking",
+    name: "A traveller",
+    location: "Pune",
     quote:
       "Ladakh in summer was on my list for years. The acclimatisation pace, the local homestays, the small group size, everything was handled. I just had to show up and breathe in the mountains.",
   },

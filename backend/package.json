@@ -17,7 +17,11 @@
     "seed:review-insights": "node seedReviewInsights.js",
     "eval": "node evals/run.js",
     "eval:ablation": "node evals/run.js --only=ablation",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "eval:concierge": "node evals/conciergeEval.js",
+    "eval:retrieval": "node evals/retrievalAblation.js",
+    "eval:retrieval:weighted": "node evals/retrievalAblationWeighted.js",
+    "eval:generate": "node evals/generateEvalSet.js",
+    "test": "find . -path ./node_modules -prune -o -name '*.js' -print0 | xargs -0 -n1 node --check"
   },
   "author": "Aarav",
   "license": "ISC",

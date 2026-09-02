@@ -200,7 +200,7 @@ export const retrieveFromVector = async (queryVector, query, { k = 6, category, 
 // search_knowledge tool. VECTOR-ONLY: a 444-query ground-truth-anchored ablation
 // (evals/retrievalAblation*.js) showed pure dense retrieval beats equal-weight
 // vector+BM25 RRF on EVERY metric on this corpus/workload (hit@8 98.9% vs 96.8%,
-// hit@1 80.9% vs 60.4%, MRR 0.885 vs 0.736), RRF fusion demoted the semantically
+// hit@1 80.9% vs 60.4%, MRR 0.90 vs 0.74), RRF fusion demoted the semantically
 // correct top hit, and no fusion weighting recovered it. The hybrid path
 // (retrieveFromVector, + the BM25/region arms) is kept exported for the ablation and
 // as a documented, revertable fallback should a keyword-heavy workload warrant it.

@@ -81,10 +81,13 @@ const run = async () => {
   vRanks.forEach((vr, i) => { const hr = hRanks[i]; if (hr <= 8 && vr > 8) hOnly++; if (vr <= 8 && hr > 8) vOnly++; });
   console.log(`\nAt k=8: hybrid recovered ${hOnly} gold chunks vector-only missed; hybrid lost ${vOnly}.`);
 
+  // The artifact carries the hit@k curve and the per-intent breakdown, which is what
+  // gets compared across runs. MRR is a single roll-up of the same ranks, reported in
+  // the console output above and in evals/README.md.
   fs.writeFileSync(EVAL.replace(/\.json$/, "") + ".ablation.json", JSON.stringify({
     n: rows.length, k: K_LIST,
-    vector: Object.fromEntries(K_LIST.map((k) => [`hit@${k}`, hitAt(vRanks, k)]).concat([["mrr", vm]])),
-    hybrid: Object.fromEntries(K_LIST.map((k) => [`hit@${k}`, hitAt(hRanks, k)]).concat([["mrr", hm]])),
+    vector: Object.fromEntries(K_LIST.map((k) => [`hit@${k}`, hitAt(vRanks, k)])),
+    hybrid: Object.fromEntries(K_LIST.map((k) => [`hit@${k}`, hitAt(hRanks, k)])),
     perIntent,
   }, null, 2));
   await mongoose.disconnect();
